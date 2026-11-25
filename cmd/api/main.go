@@ -9,7 +9,7 @@ import (
 func main(){
 	cfg,err:= config.Load()
 	if err!=nil{
-		fmt.Fprintln(os.Stderr,"Failed to load configuration %v\n",err)
+		fmt.Fprintf(os.Stderr,"Failed to load configuration %v\n",err)
 		os.Exit(1)
 	}
 	logger:=telemetry.NewLogger(cfg.AppEnv, cfg.LogLevel)
