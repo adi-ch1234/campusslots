@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS registrations;
+DROP TABLE IF EXISTS workshops;
+DROP TABLE IF EXISTS students;
