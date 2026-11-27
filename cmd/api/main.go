@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/adi-ch1234/campusslots/internal/config"
-	"github.com/adi-ch1234/campusslots/internal/database"
-	"github.com/adi-ch1234/campusslots/internal/handler"
-	"github.com/adi-ch1234/campusslots/internal/telemetry"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/adi-ch1234/campusslots/internal/config"
+	"github.com/adi-ch1234/campusslots/internal/database"
+	"github.com/adi-ch1234/campusslots/internal/handler"
+	"github.com/adi-ch1234/campusslots/internal/repository"
+	"github.com/adi-ch1234/campusslots/internal/service"
+	"github.com/adi-ch1234/campusslots/internal/telemetry"
 )
 
 func main() {
@@ -47,8 +50,11 @@ func run() error {
 		logger.Info("connected to redis", "redis_addr", cfg.RedisAddr)
 	}
 	defer redisClient.Close()
+	workshopRepo := repository.NewWorkshopRepository(pgPool)
+	workshopSvc:=service.NewWorkshopService(workshopRepo)
+	workshopHandler:=handler.NewWorkshopHandler(workshopSvc,logger)
 	healthHandler := handler.NewHealthHandler(pgPool)
-	router := handler.NewRouter(logger, cfg.RequestTimeout, healthHandler)
+	router := handler.NewRouter(logger, cfg.RequestTimeout, healthHandler,workshopHandler)
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,
@@ -59,6 +65,7 @@ func run() error {
 	}
 	serverErr := make(chan error, 1)
 	go func() {
+		logger.Info("http server listening", "addr", cfg.HTTPAddr, "env", cfg.AppEnv)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
 		}
