@@ -50,11 +50,13 @@ func run() error {
 		logger.Info("connected to redis", "redis_addr", cfg.RedisAddr)
 	}
 	defer redisClient.Close()
+	// 3. Wire repositories -> services -> handlers -> router
 	workshopRepo := repository.NewWorkshopRepository(pgPool)
-	workshopSvc:=service.NewWorkshopService(workshopRepo)
-	workshopHandler:=handler.NewWorkshopHandler(workshopSvc,logger)
+	workshopCache := repository.NewWorkshopCache(redisClient)
+	workshopSvc := service.NewWorkshopService(workshopRepo, workshopCache, logger)
+	workshopHandler := handler.NewWorkshopHandler(workshopSvc, logger)
 	healthHandler := handler.NewHealthHandler(pgPool)
-	router := handler.NewRouter(logger, cfg.RequestTimeout, healthHandler,workshopHandler)
+	router := handler.NewRouter(logger, cfg.RequestTimeout, healthHandler, workshopHandler)
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           router,
@@ -77,7 +79,7 @@ func run() error {
 	case <-ctx.Done():
 		logger.Info("shutdown signal received; draining in-flight requests")
 	}
-	shutdownCtx,cancel:=context.WithTimeout(context.Background(),10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("graceful shutdown failed: %w", err)
@@ -85,5 +87,3 @@ func run() error {
 	logger.Info("server stopped cleanly")
 	return nil
 }
-
-

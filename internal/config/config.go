@@ -1,4 +1,5 @@
 package config
+
 import (
 	"errors"
 	"fmt"
@@ -8,15 +9,17 @@ import (
 
 	"github.com/joho/godotenv"
 )
-type Config struct{
-	AppEnv string 
-	LogLevel string
-	HTTPAddr string
-	DatabaseURL string
-	RedisAddr string
+
+type Config struct {
+	AppEnv         string
+	LogLevel       string
+	HTTPAddr       string
+	DatabaseURL    string
+	RedisAddr      string
 	RequestTimeout time.Duration
 }
-func Load() (Config,error){
+
+func Load() (Config, error) {
 	_ = godotenv.Load()
 	timeout, err := getEnvDuration("REQUEST_TIMEOUT", 5*time.Second)
 	if err != nil {

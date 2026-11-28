@@ -1,11 +1,14 @@
 package domain
+
 import (
 	"time"
 )
+
 const (
-	WorkshopStatusOpen = "OPEN"
+	WorkshopStatusOpen   = "OPEN"
 	WorkshopStatusClosed = "CLOSED"
 )
+
 // Workshop represents a scheduled college workshop and its live seat count.
 type Workshop struct {
 	ID             int64     `json:"id"`

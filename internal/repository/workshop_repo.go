@@ -1,4 +1,5 @@
-package repository 
+package repository
+
 import (
 	"context"
 	"errors"
@@ -10,28 +11,29 @@ import (
 	"github.com/adi-ch1234/campusslots/internal/domain"
 )
 
-type WorkshopRepository struct{
+type WorkshopRepository struct {
 	pool *pgxpool.Pool
 }
-func NewWorkshopRepository (pool *pgxpool.Pool) *WorkshopRepository {
+
+func NewWorkshopRepository(pool *pgxpool.Pool) *WorkshopRepository {
 	return &WorkshopRepository{pool: pool}
 }
 
-func (r *WorkshopRepository) List(ctx context.Context) ([]domain.Workshop, error){
+func (r *WorkshopRepository) List(ctx context.Context) ([]domain.Workshop, error) {
 	const query = `
 		SELECT id, title, location, starts_at, status, capacity, available_seats, created_at 
 		FROM workshops
 		ORDER BY starts_at ASC , id ASC
 	`
-	rows,err:= r.pool.Query(ctx,query)
-	if err!=nil{
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
 		return nil, fmt.Errorf("query workshops: %w", err)
 	}
 	defer rows.Close()
-	workshops:=make([]domain.Workshop,0)
-	for rows.Next(){
+	workshops := make([]domain.Workshop, 0)
+	for rows.Next() {
 		var w domain.Workshop
-		err:=rows.Scan(
+		err := rows.Scan(
 			&w.ID,
 			&w.Title,
 			&w.Location,
@@ -41,15 +43,15 @@ func (r *WorkshopRepository) List(ctx context.Context) ([]domain.Workshop, error
 			&w.AvailableSeats,
 			&w.CreatedAt,
 		)
-		if err!=nil{
+		if err != nil {
 			return nil, fmt.Errorf("scan workshop row: %w", err)
 		}
-		workshops = append(workshops,w)
+		workshops = append(workshops, w)
 	}
-	if err:=rows.Err();err!=nil{
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate workshop rows: %w", err)
 	}
-	return workshops,nil
+	return workshops, nil
 }
 func (r *WorkshopRepository) GetByID(ctx context.Context, id int64) (domain.Workshop, error) {
 	const query = `
@@ -78,14 +80,14 @@ func (r *WorkshopRepository) GetByID(ctx context.Context, id int64) (domain.Work
 
 	return w, nil
 }
-func (r *WorkshopRepository) Create(ctx context.Context , input domain.CreateWorkshopInput) (domain.Workshop,error){
+func (r *WorkshopRepository) Create(ctx context.Context, input domain.CreateWorkshopInput) (domain.Workshop, error) {
 	const query = `
 		INSERT INTO workshops (title, location, starts_at, status, capacity, available_seats)
 		VALUES ($1, $2, $3, $4, $5, $5)
 		RETURNING id, title, location, starts_at, status, capacity, available_seats, created_at
 	`
 	var w domain.Workshop
-	err:=r.pool.QueryRow(ctx,query,input.Title,
+	err := r.pool.QueryRow(ctx, query, input.Title,
 		input.Location,
 		input.StartsAt,
 		input.Status,

@@ -1,4 +1,5 @@
 package handler
+
 import (
 	"context"
 	"encoding/json"
@@ -29,6 +30,7 @@ func NewWorkshopHandler(svc WorkshopService, logger *slog.Logger) *WorkshopHandl
 		logger: logger,
 	}
 }
+
 type createWorkshopRequest struct {
 	Title    string    `json:"title"`
 	Location string    `json:"location"`
@@ -36,14 +38,15 @@ type createWorkshopRequest struct {
 	Capacity int       `json:"capacity"`
 	Status   string    `json:"status"`
 }
-func(h *WorkshopHandler) List(w http.ResponseWriter, r * http.Request){
-	workshops,err:= h.svc.List(r.Context())
-	if err!=nil{
-		h.handleError(w,r,err)
+
+func (h *WorkshopHandler) List(w http.ResponseWriter, r *http.Request) {
+	workshops, err := h.svc.List(r.Context())
+	if err != nil {
+		h.handleError(w, r, err)
 		return
 	}
-	WriteJSON(w,http.StatusOK,map[string]any{
-		"workshops":workshops,
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"workshops": workshops,
 	})
 }
 func (h *WorkshopHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -61,46 +64,46 @@ func (h *WorkshopHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSON(w, http.StatusOK, workshop)
 }
-func (h* WorkshopHandler) Create(w http.ResponseWriter, r * http.Request){
-	r.Body = http.MaxBytesReader(w,r.Body,1<<20)
-	dec:=json.NewDecoder(r.Body)
+func (h *WorkshopHandler) Create(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	var req createWorkshopRequest
-	if err:= dec.Decode(&req);err!=nil{
-		WriteError(w,http.StatusBadRequest,"INVALID_REQUEST","Invalid JSON request body")
+	if err := dec.Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON request body")
 		return
 	}
-	if err:=dec.Decode(&struct{}{});!errors.Is(err,io.EOF){
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "request body must contain a single JSON object")
 		return
 	}
-	workshop,err:=h.svc.Create(r.Context(),domain.CreateWorkshopInput{
-		Title:req.Title,
-		Location:req.Location,
+	workshop, err := h.svc.Create(r.Context(), domain.CreateWorkshopInput{
+		Title:    req.Title,
+		Location: req.Location,
 		StartsAt: req.StartsAt,
 		Capacity: req.Capacity,
 		Status:   req.Status,
 	})
-	if err!=nil{
-		h.handleError(w,r,err)
+	if err != nil {
+		h.handleError(w, r, err)
 		return
 	}
-	WriteJSON(w,http.StatusCreated,workshop)
+	WriteJSON(w, http.StatusCreated, workshop)
 }
-func (h *WorkshopHandler) handleError(w http.ResponseWriter, r *http.Request, err error){
+func (h *WorkshopHandler) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	var valErr domain.ValidationError
-	if errors.As(err,&valErr){
-		WriteError(w,http.StatusBadRequest,"INVALID_REQUEST",valErr.Message)
+	if errors.As(err, &valErr) {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", valErr.Message)
 		return
 	}
-	if errors.Is(err,domain.ErrWorkshopNotFound){
+	if errors.Is(err, domain.ErrWorkshopNotFound) {
 		WriteError(w, http.StatusNotFound, "WORKSHOP_NOT_FOUND", "workshop not found")
 		return
 	}
 	h.logger.Error("workshop handler failed",
-		"method",r.Method,
-		"path",r.URL.Path,
-		"error",err,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"error", err,
 	)
 	WriteError(w, http.StatusServiceUnavailable, "DATABASE_UNAVAILABLE", "service temporarily unavailable")
 }

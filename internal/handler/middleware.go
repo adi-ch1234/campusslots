@@ -1,4 +1,5 @@
 package handler
+
 import (
 	"context"
 	"log/slog"
@@ -7,26 +8,27 @@ import (
 	"time"
 )
 
-type statusRecorder struct{
+type statusRecorder struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode  int
 	wroteHeader bool
 }
-func(sr *statusRecorder) WriteHeader(code int){
-	if(!sr.wroteHeader){
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	if !sr.wroteHeader {
 		sr.statusCode = code
 		sr.wroteHeader = true
 	}
 	sr.ResponseWriter.WriteHeader(sr.statusCode)
 }
-func RequestLogger(logger *slog.Logger,next http.Handler) http.Handler{
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
-		start:=time.Now()
-		rec:=&statusRecorder{
+func RequestLogger(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{
 			ResponseWriter: w,
-			statusCode: 200,
+			statusCode:     200,
 		}
-		next.ServeHTTP(w,r)
+		next.ServeHTTP(w, r)
 		logger.Info("http request",
 			"method", r.Method,
 			"path", r.URL.Path,
@@ -35,10 +37,10 @@ func RequestLogger(logger *slog.Logger,next http.Handler) http.Handler{
 		)
 	})
 }
-func Recover(logger *slog.Logger, next http.Handler) http.Handler{
-	return http.HandlerFunc(func(w http.ResponseWriter , r * http.Request){
-		defer func(){
-			if rec:=recover();rec!=nil{
+func Recover(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
 				logger.Error("http handler panicked",
 					"panic", rec,
 					"method", r.Method,
@@ -50,7 +52,7 @@ func Recover(logger *slog.Logger, next http.Handler) http.Handler{
 		}()
 		next.ServeHTTP(w, r)
 	})
-	
+
 }
 func Timeout(d time.Duration, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
